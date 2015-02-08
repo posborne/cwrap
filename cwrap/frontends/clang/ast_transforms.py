@@ -42,8 +42,13 @@ def _flatten_container(container, items=None):  # , context_name=None):
     mod_context = []
     for i, field in enumerate(container.members):
         if isinstance(field, (c_ast.Struct, c_ast.Union)):
-            # Create the necessary mangled names
-            mangled_name = '__%s_%s' % (parent_name, field.name)
+            # Create the necessary mangled names.  The name mangling will generate a new struct name
+            # where it has the following format:
+            # 1. A single leading underscore
+            # 2. Two underscore between the parent type name and the field name of the subtype
+            #
+            # A typedef will be generated with a suffic of '_t'
+            mangled_name = '_%s__%s' % (parent_name.lstrip("_"), field.name)
             mangled_typename = mangled_name + '_t'
 
             # Change the name of the nested item to the mangled
