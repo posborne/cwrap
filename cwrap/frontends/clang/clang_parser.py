@@ -1,14 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-#------------------------------------------------------------------------------
-# This file is adapted from ctypeslib.codegen.gccxmlparser
-#------------------------------------------------------------------------------
-
-#originally Thomas Heller, MIT license
-
-import os
-import sys
 import re
 
 import c_ast
@@ -22,9 +14,11 @@ from clang.cindex import CursorKind, TypeKind
 # it to be exchangeable.
 class Level(int):
     '''represent currently visited level of a tree'''
+
     def show(self, *args):
         '''pretty print an indented line'''
-        print '\t'*self + ' '.join(map(str, args))
+        # print '\t'*self + ' '.join(map(str, args))
+
     def __add__(self, inc):
         '''increase level'''
         return Level(super(Level, self).__add__(inc))
@@ -65,7 +59,7 @@ class ClangParser(object):
     # For example, 
     # function arguments are subelements of a function, but struct 
     # fields are their own toplevel xml elements
-    
+
     ##TODO
     #has_subelements = set(['Enumeration', 'Function', 'FunctionType',
     #                       'OperatorFunction', 'Method', 'Constructor',
@@ -103,24 +97,24 @@ class ClangParser(object):
         object.
 
         """
-        args_include_dirs = ['-I'+d for d in include_dirs]
-        args_language = ['-x'+language if language else '']
-                
+        args_include_dirs = ['-I' + d for d in include_dirs]
+        args_language = ['-x' + language if language else '']
+
         index = clang.cindex.Index.create()
         tu = index.parse(cfile,
-                         args = args_include_dirs + args_language, 
+                         args=args_include_dirs + args_language,
                          #args = ['-I/usr/include/c++/4.2.1',],
-                         options = clang.cindex.TranslationUnit.PARSE_INCOMPLETE + \
-                             clang.cindex.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD + \
-                             clang.cindex.TranslationUnit.PARSE_SKIP_FUNCTION_BODIES,
-                         unsaved_files = unsaved_files
-                         )
+                         options=clang.cindex.TranslationUnit.PARSE_INCOMPLETE + \
+                                 clang.cindex.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD + \
+                                 clang.cindex.TranslationUnit.PARSE_SKIP_FUNCTION_BODIES,
+                         unsaved_files=unsaved_files
+        )
 
         for d in tu.diagnostics:
             self.print_diag_info(d)
-        
+
         #UGLY: first element is TRANSLATION_UNIT, parse children
-        self.parse_element(tu.cursor) 
+        self.parse_element(tu.cursor)
         #for c in tu.cursor.get_children():
         #    self.parse_element(c)
 
@@ -132,16 +126,16 @@ class ClangParser(object):
         print 'spelling:', diag.spelling
         #print 'ranges:', list(diag.ranges)
         #print 'fixits', list(diag.fixits)
-        print 'fixits', ['%d:%d-%d:%d %s'%(f.range.start.line, f.range.start.column, 
-                                           f.range.end.line, f.range.end.column,
-                                           f.value) for f in diag.fixits]
+        print 'fixits', ['%d:%d-%d:%d %s' % (f.range.start.line, f.range.start.column,
+                                             f.range.end.line, f.range.end.column,
+                                             f.value) for f in diag.fixits]
         print
 
 
     simple_types = {TypeKind.VOID: 'void',
                     TypeKind.BOOL: 'bint',
                     TypeKind.CHAR_U: 'char',
-                    TypeKind.UCHAR: 'unsigned char', #TODO unsigned? char????
+                    TypeKind.UCHAR: 'unsigned char',  #TODO unsigned? char????
                     #TypeKind.CHAR16 = TypeKind(6)
                     #TypeKind.CHAR32 = TypeKind(7)
                     TypeKind.USHORT: 'unsigned short',
@@ -149,9 +143,9 @@ class ClangParser(object):
                     TypeKind.ULONG: 'unsigned long',
                     TypeKind.ULONGLONG: 'unsigned long long',
                     #TypeKind.UINT128: TypeKind(12)
-                    TypeKind.CHAR_S: 'char', #signed char on platforms where it is default
+                    TypeKind.CHAR_S: 'char',  #signed char on platforms where it is default
                     TypeKind.SCHAR: 'signed char',
-                    TypeKind.WCHAR: 'char', #TODO: ???
+                    TypeKind.WCHAR: 'char',  #TODO: ???
                     TypeKind.SHORT: 'short',
                     TypeKind.INT: 'int',
                     TypeKind.LONG: 'long',
@@ -160,11 +154,11 @@ class ClangParser(object):
                     TypeKind.FLOAT: 'float',
                     TypeKind.DOUBLE: 'double',
                     TypeKind.LONGDOUBLE: 'long double',
-                    }
+    }
 
-    def type_to_c_ast_type(self, t, level, recurse = True):
-        #convert clang type to c_ast type, return c_ast and hash value for corresponding cursor (or None)
-        level.show( 'in type to c_ast:', 'kind:', t.kind, repr(t.get_declaration().spelling))
+    def type_to_c_ast_type(self, t, level, recurse=True):
+        # convert clang type to c_ast type, return c_ast and hash value for corresponding cursor (or None)
+        level.show('in type to c_ast:', 'kind:', t.kind, repr(t.get_declaration().spelling))
 
         kind = t.kind
         if kind in self.simple_types:
@@ -174,8 +168,8 @@ class ClangParser(object):
             return c_ast.CvQualifiedType(fundtype, const, volatile), None
 
         elif kind is TypeKind.CONSTANTARRAY:
-            a, foo = self.type_to_c_ast_type(t.element_type, level+1)
-            return c_ast.ArrayType(a, 0, t.element_count-1), None
+            a, foo = self.type_to_c_ast_type(t.element_type, level + 1)
+            return c_ast.ArrayType(a, 0, t.element_count - 1), None
 
         elif kind is TypeKind.TYPEDEF:
             const = t.is_const_qualified()
@@ -186,13 +180,13 @@ class ClangParser(object):
         elif kind is TypeKind.POINTER:
             const = t.is_const_qualified()
             volatile = t.is_volatile_qualified()
-            ptrtype, foo = self.type_to_c_ast_type(t.get_pointee(), level+1)
+            ptrtype, foo = self.type_to_c_ast_type(t.get_pointee(), level + 1)
             if ptrtype is not None:
                 ptrtype = c_ast.PointerType(ptrtype, None, None)
                 return c_ast.CvQualifiedType(ptrtype, const, volatile), None
 
         elif kind is TypeKind.LVALUEREFERENCE:
-            reftype, foo = self.type_to_c_ast_type(t.get_pointee(), level+1)
+            reftype, foo = self.type_to_c_ast_type(t.get_pointee(), level + 1)
             if reftype is not None:
                 return c_ast.RefType(reftype), None
 
@@ -203,23 +197,23 @@ class ClangParser(object):
                 return typ, t.get_declaration().hash
             else:
                 level.show('enum declaration not yet parsed')
-                typ = self.parse_element(t.get_declaration(), level) #TODO ????
+                typ = self.parse_element(t.get_declaration(), level)  #TODO ????
                 return typ, t.get_declaration().hash
 
         elif kind is TypeKind.FUNCTIONPROTO:
             level.show('return type:')
-            returntype, id_ = self.type_to_c_ast_type(t.get_result(), level+1)
+            returntype, id_ = self.type_to_c_ast_type(t.get_result(), level + 1)
             #TODO: very similar to visit_FUNCTION_DECL
             functype = c_ast.FunctionType(returntype, None)
             level.show('argument types:')
             for arg in t.argument_types():
                 #TODO: argument name?
-                functype.add_argument(c_ast.Argument('', self.type_to_c_ast_type(arg, level+1)[0]))
+                functype.add_argument(c_ast.Argument('', self.type_to_c_ast_type(arg, level + 1)[0]))
             return functype, None
-            
+
         elif kind is TypeKind.UNEXPOSED and recurse:
-            return self.type_to_c_ast_type(t.get_canonical(), level+1, recurse = False)
-        
+            return self.type_to_c_ast_type(t.get_canonical(), level + 1, recurse=False)
+
         else:
             level.show('do not know to handle type kind, search for declaration')
             typ = self.all.get(t.get_declaration().hash)
@@ -233,7 +227,7 @@ class ClangParser(object):
             else:
                 level.show("can't find declaration for type, parse type declaration", kind, t.get_declaration().kind)
                 #print
-                typ = self.parse_element(t.get_declaration(), level+1)
+                typ = self.parse_element(t.get_declaration(), level + 1)
                 if typ is not None:
                     return typ, t.get_declaration().hash
                 else:
@@ -242,12 +236,9 @@ class ClangParser(object):
                         return c_ast.FundamentalType('unexposed_type'), None
 
                     level.show('give up, unknown_type')
-                    return c_ast.FundamentalType('unknown_type'), None #TODO: fixme
-                
-        
+                    return c_ast.FundamentalType('unknown_type'), None  #TODO: fixme
 
-    def parse_element(self, cursor, level = Level()):
-        
+    def parse_element(self, cursor, level=Level()):
         #level.show('file:', repr(cursor.location.file))
         # ignore builtin nodes
         if cursor.location.file is None and cursor.kind is not CursorKind.TRANSLATION_UNIT:
@@ -259,7 +250,7 @@ class ClangParser(object):
             result = mth(cursor, level)
         else:
             result = self.unhandled_element(cursor, level)
-        
+
         # Record the result and register the the id, which is
         # used in the _fixup_* methods. Some elements don't have
         # an id, so we create our own.
@@ -275,7 +266,7 @@ class ClangParser(object):
             level.show('cursor:', cursor.kind, str(cursor.type.kind))
             level.show('name:', repr(result.name))
             print
-        
+
 
         # if this element has subelements, push it onto the context
         # since the next elements will be it's children.
@@ -299,44 +290,30 @@ class ClangParser(object):
             # arguments belong to the function declaration, some to the
             # function prototype).
             #CursorKind.FUNCTION_DECL,
-                           ]:
+        ]:
             self.context.append(result)
 
             for c in cursor.get_children():
-                child = self.parse_element(c, level+1)
+                child = self.parse_element(c, level + 1)
                 if child is not None and hasattr(result, 'add_child'):
                     result.add_child(child)
-                
+
             # if this element has subelements, then it will have
             # been push onto the stack and needs to be removed.
             self.context.pop()
 
         self.cdata = None
-        
-        
-        #level.show('parse_element result', result)
-        #if result is not None:
-        #    level.show(str(result.__dict__)) #.__dict__
-        #print
-
         return result
 
 
-    
     def unhandled_element(self, cursor, level):
         """ Handler for element nodes where a real handler is not
          found.
 
         """
-
-        #level.show('file:', repr(cursor.location.file))
-        # ignore builtin nodes
         if cursor.location.file is None:
             return
-
-        #print 'Unhandled element `%s`.' % cursor.displayname
         level.show('unhandled element', repr(cursor.spelling), repr(cursor.displayname), cursor.kind)
-        #print
 
     #--------------------------------------------------------------------------
     # Ignored elements and do-nothing handlers
@@ -356,54 +333,17 @@ class ClangParser(object):
                 name = MAKE_NAME(name)
         return c_ast.Ignored(name)
 
-    visit_Method =  visit_Ignored
+    visit_Method = visit_Ignored
     visit_Constructor = visit_Ignored
     visit_Destructor = visit_Ignored
-    visit_OperatorMethod  =  visit_Ignored
-    #visit_Class = visit_Ignored
+    visit_OperatorMethod = visit_Ignored
     visit_Base = visit_Ignored
     visit_Converter = visit_Ignored
     visit_MethodType = visit_Ignored
-
-    # These node types are ignored becuase we don't need anything
-    # at all from them.
-    #visit_Class = lambda *args: None
-    #visit_Base =  lambda *args: None
-    visit_Ellipsis =  lambda *args: None
+    visit_Ellipsis = lambda *args: None
 
     visit_OffsetType = visit_Ignored
 
-    # #--------------------------------------------------------------------------
-    # # Revision Handler
-    # #--------------------------------------------------------------------------
-    # def visit_GCC_XML(self, attrs):
-    #     """ Handles the versioning info from the gccxml version.
-
-    #     """
-    #     rev = attrs['cvs_revision']
-    #     self.cvs_revision = tuple(map(int, rev.split('.')))
-    
-    # #--------------------------------------------------------------------------
-    # # Text handlers
-    # #--------------------------------------------------------------------------
-    # def visit_Characters(self, content):
-    #     """ The character handler which is called after each xml 
-    #     element has been processed.
-
-    #     """
-    #     if self.cdata is not None:
-    #         self.cdata.append(content)
-    
-    # def visit_CPP_DUMP(self, attrs):
-    #     """ Gathers preprocessor elements like macros and defines.
-
-    #     """
-    #     # Insert a new list for each named section into self.cpp_data,
-    #     # and point self.cdata to it.  self.cdata will be set to None
-    #     # again at the end of each section.
-    #     name = attrs['name']
-    #     self.cpp_data[name] = self.cdata = []
- 
     #--------------------------------------------------------------------------
     # Node element handlers
     #--------------------------------------------------------------------------
@@ -418,8 +358,9 @@ class ClangParser(object):
     def visit_TYPEDEF_DECL(self, cursor, level):
         c_ast_type, id_ = self.type_to_c_ast_type(cursor.underlying_typedef_type, level)
         if c_ast_type is not None:
-            level.show('in visit_TYPEDEF_DECL, c_ast_type =', c_ast_type.__class__.__name__, 'name =', repr(c_ast_type.name))
-            
+            level.show('in visit_TYPEDEF_DECL, c_ast_type =', c_ast_type.__class__.__name__, 'name =',
+                       repr(c_ast_type.name))
+
             #special handling of typedef enum, struct, union
             if type(c_ast_type) in (c_ast.Enumeration, c_ast.Union, c_ast.Struct):
                 # If the underlying typedef type doesn't have a name, add a
@@ -429,8 +370,8 @@ class ClangParser(object):
                 # flattening
                 c_ast_type.typedef_name = cursor.spelling
 
-                if not c_ast_type.name: 
-                    #unnamed record -> remove declaration from self.all 
+                if not c_ast_type.name:
+                    # unnamed record -> remove declaration from self.all
                     level.show('remove declaration', c_ast_type, self.all[id_])
                     try:
                         idx = c_ast_type.context.members.index(c_ast_type)
@@ -442,17 +383,17 @@ class ClangParser(object):
                 elif c_ast_type.name == cursor.spelling:
                     #enum tagname == typename: no typedef, do nothing
                     return
-            
+
             return c_ast.Typedef(cursor.spelling, c_ast_type, None)
-        
+
     def visit_STRUCT_DECL(self, cursor, level):
         name = cursor.spelling
-        s = c_ast.Struct(name, context = self.context[-1], members = [])
+        s = c_ast.Struct(name, context=self.context[-1], members=[])
         return s
 
     def visit_UNION_DECL(self, cursor, level):
         name = cursor.spelling
-        return c_ast.Union(name, context = self.context[-1])
+        return c_ast.Union(name, context=self.context[-1])
 
     def visit_FIELD_DECL(self, cursor, level):
         # If a field has struct as a child, use the field name as the
@@ -467,9 +408,9 @@ class ClangParser(object):
         parent = self.context[-1]
         name = cursor.spelling
         c_ast_type, id_ = self.type_to_c_ast_type(cursor.type, level)
-        member = c_ast.Field(name, c_ast_type, context = parent)
+        member = c_ast.Field(name, c_ast_type, context=parent)
         return member
-            
+
     def visit_ENUM_DECL(self, cursor, level):
         name = cursor.spelling
         return c_ast.Enumeration(name, self.context[-1])
@@ -478,14 +419,14 @@ class ClangParser(object):
         name = cursor.spelling
         value = cursor.enum_value
         return c_ast.EnumValue(name, value)
-    
+
     def visit_FUNCTION_DECL(self, cursor, level):
         name = cursor.spelling
         returntype, id_ = self.type_to_c_ast_type(cursor.type.get_result(), level)
         func = c_ast.Function(name, returntype)
         for arg in cursor.get_arguments():
             level.show('function argument', arg.kind, arg.spelling)
-            func.add_argument(c_ast.Argument(arg.spelling, self.type_to_c_ast_type(arg.type, level+1)[0]))
+            func.add_argument(c_ast.Argument(arg.spelling, self.type_to_c_ast_type(arg.type, level + 1)[0]))
         return func
 
     visit_CXX_METHOD = visit_FUNCTION_DECL
@@ -497,15 +438,15 @@ class ClangParser(object):
         return c_ast.Variable(name, typ, None, None)
 
     def visit_CLASS_DECL(self, cursor, level):
-        c = c_ast.Class(cursor.spelling, context = self.context[-1])
+        c = c_ast.Class(cursor.spelling, context=self.context[-1])
         return c
 
     def visit_CLASS_TEMPLATE(self, cursor, level):
-        c = c_ast.Class(cursor.spelling, context = self.context[-1])
+        c = c_ast.Class(cursor.spelling, context=self.context[-1])
         return c
 
     visit_FUNCTION_TEMPLATE = visit_FUNCTION_DECL
-    
+
     def visit_PARM_DECL(self, cursor, level):
         name = cursor.spelling
         parent = self.context[-1]
@@ -513,7 +454,7 @@ class ClangParser(object):
         arg = c_ast.Argument(name, typ)
         #parent.add_argument(arg)
         return arg
-        
+
     def repair_type(self, obj, name):
         #repair type of c_ast object
         if isinstance(obj, c_ast.FundamentalType):
@@ -527,12 +468,11 @@ class ClangParser(object):
         typ, id = self.type_to_c_ast_type(cursor.type, level)
         parent = self.context[-1]
         if parent is not None:
-            level.show('TYPE REF', repr(cursor.displayname), 'parent: %s, type: %s'%(parent, cursor.type.kind))
+            level.show('TYPE REF', repr(cursor.displayname), 'parent: %s, type: %s' % (parent, cursor.type.kind))
 
             if cursor.type.kind is TypeKind.UNEXPOSED:
                 #fix type of parent
-                    self.repair_type(parent, cursor.displayname)
-                    
+                self.repair_type(parent, cursor.displayname)
 
     def visit_TEMPLATE_TYPE_PARAMETER(self, cursor, level):
         param = cursor.spelling
@@ -546,7 +486,7 @@ class ClangParser(object):
         name = attrs['name']
         members = attrs['members'].split()
         return c_ast.Namespace(name, members)
-    
+
     def visit_File(self, attrs):
         name = attrs['name']
         return c_ast.File(name)
@@ -565,7 +505,7 @@ class ClangParser(object):
         return c_ast.PointerType(typ, size, align)
 
     visit_ReferenceType = visit_PointerType
-   
+
     def visit_ArrayType(self, attrs):
         # min, max are the min and max array indices
         typ = attrs['type']
@@ -573,7 +513,7 @@ class ClangParser(object):
         max = attrs['max']
         if max == 'ffffffffffffffff':
             max = '-1'
-        if max == '': #ADDED gregor
+        if max == '':  #ADDED gregor
             max = '-1'
         min = int(min.rstrip('lu'))
         max = int(max.rstrip('lu'))
@@ -584,7 +524,7 @@ class ClangParser(object):
         const = attrs.get('const', None)
         volatile = attrs.get('volatile', None)
         return c_ast.CvQualifiedType(typ, const, volatile)
- 
+
     def visit_Function(self, attrs):
         name = attrs['name']
         returns = attrs['returns']
@@ -597,7 +537,7 @@ class ClangParser(object):
         returns = attrs['returns']
         attributes = attrs.get('attributes', '').split()
         return c_ast.FunctionType(returns, attributes)
-  
+
     def visit_OperatorFunction(self, attrs):
         name = attrs['name']
         returns = attrs['returns']
@@ -623,7 +563,6 @@ class ClangParser(object):
         align = attrs['align']
         return c_ast.Enumeration(name, size, align)
 
-    
     def visit_EnumValue(self, attrs):
         parent = self.context[-1]
         if parent is not None:
@@ -649,14 +588,13 @@ class ClangParser(object):
             name = MAKE_NAME(attrs['mangled'])
         bases = attrs.get('bases', '').split()
         #fix 'protected:_12345'
-        bases = [b.replace('protected:','') for b in bases]
+        bases = [b.replace('protected:', '') for b in bases]
         members = attrs.get('members', '').split()
         context = attrs['context']
         align = attrs['align']
         size = attrs.get('size')
-        return c_ast.Struct(name, align, members, context, bases, size) #TODO: Class
+        return c_ast.Struct(name, align, members, context, bases, size)  #TODO: Class
 
-    
     def visit_Union(self, attrs):
         name = attrs.get('name')
         if name is None:
@@ -676,102 +614,6 @@ class ClangParser(object):
         offset = attrs.get('offset')
         return c_ast.Field(name, typ, context, bits, offset)
 
-
-    #visit_Class = visit_Struct
-    #visit_Class = visit_Ignored
-
-
-    #--------------------------------------------------------------------------
-    # Fixup handlers
-    #--------------------------------------------------------------------------
-
-    # The fixup handlers use the ids save on the node attrs to lookup 
-    # the replacement node from the storage, then do the swapout. There
-    # must be a fixup handler (even if its pass-thru) for each node
-    # handler that returns a node object.
-    
-    def _fixup_Namespace(self, ns):
-        #for i, mbr in enumerate(ns.members):
-        #    ns.members[i] = self.all[mbr]
-        pass
-        
-    def _fixup_File(self, f): 
-        pass
-    
-    def _fixup_Variable(self, t):
-        #t.typ = self.all[t.typ]
-        #t.context = self.all[t.context]
-        pass
-
-    def _fixup_Typedef(self, t):
-        #t.typ = self.all[t.typ]
-        #t.context = self.all[t.context]
-        pass
-
-    def _fixup_FundamentalType(self, t): 
-        pass
-
-    def _fixup_PointerType(self, p):
-        p.typ = self.all[p.typ]
-
-    _fixup_ReferenceType = _fixup_PointerType
-
-    def _fixup_ArrayType(self, a):
-        #a.typ = self.all[a.typ]
-        pass
-
-    def _fixup_CvQualifiedType(self, c):
-        c.typ = self.all[c.typ]
-
-    def _fixup_Function(self, func):
-        #func.returns = self.all[func.returns]
-        #func.context = self.all[func.context]
-        #func.fixup_argtypes(self.all)
-        pass
-        
-    def _fixup_FunctionType(self, func):
-        func.returns = self.all[func.returns]
-        func.fixup_argtypes(self.all)
-        
-    def _fixup_OperatorFunction(self, func):
-        func.returns = self.all[func.returns]
-        func.context = self.all[func.context]
-        func.fixup_argtypes(self.all)
-
-    def _fixup_Enumeration(self, e): 
-        pass
-
-    def _fixup_EnumValue(self, e): 
-        pass
-    
-    def _fixup_Struct(self, s):
-        #s.members = [self.all[m] for m in s.members]
-        #s.bases = [self.all[b] for b in s.bases]
-        #s.context = self.all[s.context]
-        pass
-
-    def _fixup_Union(self, u):
-        #u.members = [self.all[m] for m in u.members]
-        #u.bases = [self.all[b] for b in u.bases]
-        #u.context = self.all[u.context]
-        pass
-
-    def _fixup_Field(self, f):
-        #f.typ = self.all[f.typ]
-        #f.context = self.all[f.context]
-        pass
-
-    def _fixup_Macro(self, m):
-        pass
-    
-    def _fixup_Ignored(self, const): 
-        pass
-
-    _fixup_Method = _fixup_Ignored
-    _fixup_Constructor = _fixup_Ignored
-    _fixup_Destructor = _fixup_Ignored
-    _fixup_OperatorMethod = _fixup_Ignored
-   
     #--------------------------------------------------------------------------
     # Post parsing helpers
     #--------------------------------------------------------------------------
@@ -783,7 +625,7 @@ class ClangParser(object):
         """
         if text is None:
             return
-        
+
         # join and split so we can accept a list or  string. 
         text = ''.join(text)
         for m in text.splitlines():
@@ -799,7 +641,7 @@ class ClangParser(object):
         """
         if text is None:
             return
-        
+
         aliases = {}
         text = ''.join(text)
         for a in text.splitlines():
@@ -826,49 +668,18 @@ class ClangParser(object):
         internal stuff that you wont want.
 
         """
-        
+
         # Gather any macros.
         self.get_macros(self.cpp_data.get('functions'))
-
-        # Walk through all the items, hooking up the appropriate 
-        # links by replacing the id tags with the actual objects
-        remove = []
-        #for name, node in self.all.items():
-            # location = getattr(node, 'location', None)
-            # if location is not None:
-            #     fil = location.file
-            #     #line = location.line
-            #     line = 0
-            #     #node.location = (self.all[fil].name, int(line))
-                
-            # TODO: fixup not necessary ?
-
-            # method_name = '_fixup_' + node.__class__.__name__
-            # fixup_method = getattr(self, method_name, None)
-            # if fixup_method is not None:
-            #     fixup_method(node)
-            # else:
-            #     remove.append(node)
-            #     print "remove node", node
-        
-        # # remove any nodes don't have handler methods
-        # for n in remove:
-        #     del self.all[n]
-               
-        # sub out any #define'd aliases and collect all the nodes 
-        # we're interested in. The interesting nodes are not necessarily
-        # all nodes, but rather the ones that may need to be modified
-        # by the transformations applied later on.
-        interesting = (c_ast.Typedef, c_ast.Struct, c_ast.Enumeration, 
-                       c_ast.Union, c_ast.Function, c_ast.Variable, 
+        interesting = (c_ast.Typedef, c_ast.Struct, c_ast.Enumeration,
+                       c_ast.Union, c_ast.Function, c_ast.Variable,
                        c_ast.Namespace, c_ast.File,
                        c_ast.Class,
-                       )
+        )
 
         result = []
         namespace = {}
         for node in self.all.values():
-        #for node in self.nodes: #traverse results in parse order
             if not isinstance(node, interesting):
                 continue
             name = getattr(node, 'name', None)
@@ -876,7 +687,7 @@ class ClangParser(object):
                 namespace[name] = node
             result.append(node)
         self.get_aliases(self.cpp_data.get('aliases'), namespace)
-        
+
         return result
 
 
@@ -889,16 +700,5 @@ def parse(cfile, include_dirs, language):
         parser.parse(cfile[0][0], include_dirs, language, unsaved_files=cfile)
     else:
         parser.parse(cfile, include_dirs, language)
-
-    print 'all:'
-    for a in parser.all:
-        print hex(a), parser.all[a].name
-    print
-
     items = parser.get_result()
-
-    print 'in clang_parser.py/parse(), items:'
-    for i in items:
-        print "%20s: %s"%(i.__class__.__name__, i.name)
-
     return items

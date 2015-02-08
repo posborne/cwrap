@@ -1,11 +1,9 @@
 # Stdlib imports
 import os
-import subprocess
-import tempfile
 
 # Local package imports
-from . import  ast_transforms as transforms
-from . import  clang_parser
+from . import ast_transforms as transforms
+from . import clang_parser
 
 
 def gen_c_ast(header_path, include_dirs, language):
@@ -39,21 +37,15 @@ def generate_asts(config):
         include_dirs = config.metadata.get('include_dirs', [])
 
         language = config.metadata.get('language', '')
-        
-        print 'Parsing %s' % path
-        ast_items = gen_c_ast(path, include_dirs, language) 
 
-        print 'in __init__/generate_asts()'
-        print 'file parsed'
-        print 'AST:', ast_items
-        for item in ast_items:
-            print item.__class__.__name__, item.name
-        
+        print 'Parsing %s' % path
+        ast_items = gen_c_ast(path, include_dirs, language)
+
         # Apply the transformations to the ast items 
         trans_items = transforms.apply_c_ast_transformations(ast_items)
-        
+
         # Create the CAstContainer for these items
-        container = transforms.CAstContainer(trans_items, header_name, 
+        container = transforms.CAstContainer(trans_items, header_name,
                                              extern_name, implementation_name)
 
         # Add the container to the list
