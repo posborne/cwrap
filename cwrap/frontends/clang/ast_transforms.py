@@ -321,7 +321,7 @@ class CAstTransformer(object):
         return cw_ast.Expr(cw_ast.CName(type_name, name))
 
     def translate_Enumeration(self, enum):
-        name = enum.name
+        name = enum.name or enum.typedef_name  # enum.name may be empty
         return cw_ast.TypeName(cw_ast.Name(name, cw_ast.Param))
 
     def translate_EnumValue(self, value):
