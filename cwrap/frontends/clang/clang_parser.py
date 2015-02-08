@@ -13,8 +13,8 @@ import re
 
 import c_ast
 
-from . import clang
-from .clang.cindex import CursorKind, TypeKind
+import clang
+from clang.cindex import CursorKind, TypeKind
 
 
 # A function show(level, *args) would have been simpler but less fun
